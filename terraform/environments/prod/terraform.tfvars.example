@@ -1,0 +1,9 @@
+project_name             = "cloud-portfolio"
+aws_region               = "us-east-1"
+github_owner             = "your-github-user"
+github_repo              = "aws-cloud-engineer-projects"
+github_branch            = "main"
+github_connection_arn    = "arn:aws:codestar-connections:us-east-1:123456789012:connection/example"
+db_username              = "appadmin"
+db_password              = "replace-with-a-long-secret"
+ec2_key_name             = null

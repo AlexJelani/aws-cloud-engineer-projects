@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - npm ci --prefix app
+  build:
+    commands:
+      - npm test --prefix app
+artifacts:
+  base-directory: app
+  files:
+    - "**/*"

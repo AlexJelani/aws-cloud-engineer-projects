@@ -1,0 +1,12 @@
+{
+  "name": "aws-cloud-engineer-portfolio-app",
+  "version": "1.0.0",
+  "description": "Small health-checkable app for AWS portfolio infrastructure.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
