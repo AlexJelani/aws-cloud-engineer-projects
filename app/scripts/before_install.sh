@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if ! command -v node >/dev/null 2>&1; then
-  dnf install -y nodejs npm || yum install -y nodejs npm
+if ! command -v docker >/dev/null 2>&1; then
+  dnf install -y docker || yum install -y docker
+  systemctl enable --now docker
 fi
 
 mkdir -p /opt/portfolio-app
