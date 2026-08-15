@@ -2,11 +2,11 @@
 set -euo pipefail
 
 if systemctl is-active --quiet portfolio-app; then
-  systemctl stop portfolio-app
+  systemctl stop portfolio-app || true
 fi
 
 if systemctl is-enabled --quiet portfolio-app; then
-  systemctl disable portfolio-app
+  systemctl disable portfolio-app || true
 fi
 
-rm -rf /opt/portfolio-app
+mkdir -p /opt/portfolio-app
