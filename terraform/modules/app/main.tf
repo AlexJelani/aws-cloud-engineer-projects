@@ -97,7 +97,8 @@ resource "aws_launch_template" "this" {
   vpc_security_group_ids = [var.app_security_group_id]
 
   user_data = base64encode(templatefile("${path.module}/userdata.sh", {
-    region = data.aws_region.current.name
+    region = data.aws_region.current.region
+    port   = 3000
   }))
 
   tag_specifications {
