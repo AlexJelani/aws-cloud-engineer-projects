@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-dnf install -y nodejs npm || yum install -y nodejs npm
+if ! command -v node >/dev/null 2>&1; then
+  dnf install -y nodejs npm || yum install -y nodejs npm
+fi
+
 mkdir -p /opt/portfolio-app
+chmod 755 /opt/portfolio-app
 

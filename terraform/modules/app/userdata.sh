@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-dnf update -y
-
-dnf install -y ruby wget curl nodejs npm
+if ! command -v node >/dev/null 2>&1; then
+  dnf update -y
+  dnf install -y ruby wget curl nodejs npm || yum install -y ruby wget curl nodejs npm
+fi
 
 mkdir -p /opt/portfolio-app
+chmod 755 /opt/portfolio-app
 
-cd /tmp
-wget "https://aws-codedeploy-${region}.s3.${region}.amazonaws.com/latest/install"
-chmod +x ./install
-./install auto
-systemctl enable --now codedeploy-agent || true
+if command -v systemctl >/dev/null 2>&1; then
+  if ! systemctl list-unit-files --type=service | grep -q '^codedeploy-agent.service'; then
+    cd /tmp
+    wget "https://aws-codedeploy-${region}.s3.${region}.amazonaws.com/latest/install" -O codedeploy-install.sh
+    chmod +x codedeploy-install.sh
+    ./codedeploy-install.sh auto
+  fi
+
+  systemctl enable --now codedeploy-agent || true
+fi
 
 if [ ! -f /opt/portfolio-app/server.js ]; then
   cat >/opt/portfolio-app/server.js <<'APP'
@@ -57,7 +64,7 @@ fi
 
 if [ -f /opt/portfolio-app/package.json ]; then
   cd /opt/portfolio-app
-  npm install --omit=dev --no-fund --no-audit || true
+  npm install --omit=dev --no-fund --no-audit || npm install --no-fund --no-audit || true
 fi
 
 cat >/etc/systemd/system/portfolio-app.service <<'SERVICE'
@@ -81,6 +88,15 @@ SERVICE
 
 systemctl daemon-reload
 systemctl enable --now portfolio-app || true
-systemctl status portfolio-app --no-pager --lines=20 || true
-curl -fsS http://localhost:3000/health || true
+
+for i in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:3000/health >/dev/null 2>&1; then
+    exit 0
+  fi
+  sleep 2
+done
+
+systemctl status portfolio-app --no-pager --lines=40 || true
+curl -i http://127.0.0.1:3000/health || true
+exit 1
 

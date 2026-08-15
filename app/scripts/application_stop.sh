@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if systemctl is-active --quiet portfolio-app; then
+# Stop any prior service instance without deleting the deployed app files.
+if systemctl list-unit-files --type=service | grep -q '^portfolio-app.service'; then
   systemctl stop portfolio-app || true
-fi
-
-if systemctl is-enabled --quiet portfolio-app; then
   systemctl disable portfolio-app || true
 fi
 
 mkdir -p /opt/portfolio-app
+chmod 755 /opt/portfolio-app
