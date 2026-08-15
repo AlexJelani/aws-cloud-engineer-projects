@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+mkdir -p /opt/portfolio-app
 cd /opt/portfolio-app
-npm ci --omit=dev
+
+if [ -f package-lock.json ]; then
+  npm ci --omit=dev
+fi
 
 cat >/etc/systemd/system/portfolio-app.service <<'SERVICE'
 [Unit]
