@@ -5,14 +5,16 @@ dnf update -y
 
 dnf install -y ruby wget curl nodejs npm
 
+mkdir -p /opt/portfolio-app
+
 cd /tmp
 wget "https://aws-codedeploy-${region}.s3.${region}.amazonaws.com/latest/install"
 chmod +x ./install
 ./install auto
-systemctl enable --now codedeploy-agent
+systemctl enable --now codedeploy-agent || true
 
-mkdir -p /opt/portfolio-app/app
-cat >/opt/portfolio-app/app/server.js <<'APP'
+if [ ! -f /opt/portfolio-app/server.js ]; then
+  cat >/opt/portfolio-app/server.js <<'APP'
 const http = require("http");
 const port = process.env.PORT || 3000;
 const version = process.env.APP_VERSION || "1.0.0";
@@ -51,6 +53,12 @@ if (require.main === module) {
 
 module.exports = { app, requestHandler };
 APP
+fi
+
+if [ -f /opt/portfolio-app/package.json ]; then
+  cd /opt/portfolio-app
+  npm install --omit=dev --no-fund --no-audit || true
+fi
 
 cat >/etc/systemd/system/portfolio-app.service <<'SERVICE'
 [Unit]
@@ -60,8 +68,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/portfolio-app/app
-ExecStart=/usr/bin/node /opt/portfolio-app/app/server.js
+WorkingDirectory=/opt/portfolio-app
+ExecStart=/usr/bin/node /opt/portfolio-app/server.js
 Restart=always
 RestartSec=5
 Environment=PORT=3000
@@ -72,7 +80,7 @@ WantedBy=multi-user.target
 SERVICE
 
 systemctl daemon-reload
-systemctl enable --now portfolio-app
+systemctl enable --now portfolio-app || true
 systemctl status portfolio-app --no-pager --lines=20 || true
 curl -fsS http://localhost:3000/health || true
 
