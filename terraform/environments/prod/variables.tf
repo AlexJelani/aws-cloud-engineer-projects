@@ -1,68 +1,93 @@
 variable "project_name" {
+  description = "Name prefix used for project resources."
   type        = string
-  description = "Name prefix for project resources."
   default     = "cloud-portfolio"
 }
 
 variable "environment" {
-  type        = string
   description = "Deployment environment name."
-  default     = "prod"
+  type        = string
+  default     = "portfolio"
 }
 
 variable "aws_region" {
+  description = "AWS region for the environment."
   type        = string
-  description = "AWS region for deployment."
   default     = "us-east-1"
 }
 
 variable "vpc_cidr" {
+  description = "CIDR block for the main VPC."
   type        = string
-  description = "CIDR block for the VPC."
-  default     = "10.40.0.0/16"
+  default     = "10.0.0.0/16"
 }
 
-variable "instance_type" {
+variable "frontend_image_uri" {
+  description = "URI for the frontend container image in ECR."
   type        = string
-  description = "EC2 instance type for application servers."
-  default     = "t3.micro"
 }
 
-variable "ec2_key_name" {
+variable "backend_image_uri" {
+  description = "URI for the backend container image in ECR."
   type        = string
-  description = "Optional EC2 key pair name for SSH troubleshooting."
-  default     = null
+}
+
+variable "db_name" {
+  description = "The database name for the application."
+  type        = string
+  default     = "appdb"
 }
 
 variable "db_username" {
+  description = "Database master username."
   type        = string
-  description = "RDS username."
+  default     = "admin"
   sensitive   = true
 }
 
 variable "db_password" {
+  description = "Database master password."
   type        = string
-  description = "RDS password."
   sensitive   = true
 }
 
-variable "github_owner" {
+variable "db_engine" {
+  description = "Database engine to provision. Supported values: mysql or postgres."
   type        = string
-  description = "GitHub repository owner for CodePipeline."
+  default     = "mysql"
+
+  validation {
+    condition     = contains(["mysql", "postgres"], var.db_engine)
+    error_message = "db_engine must be either mysql or postgres."
+  }
 }
 
-variable "github_repo" {
-  type        = string
-  description = "GitHub repository name for CodePipeline."
+variable "multi_az" {
+  description = "Set to true to enable RDS Multi-AZ."
+  type        = bool
+  default     = false
 }
 
-variable "github_branch" {
-  type        = string
-  description = "GitHub branch watched by CodePipeline."
-  default     = "main"
+variable "app_cpu" {
+  description = "CPU units for each Fargate task definition."
+  type        = number
+  default     = 256
 }
 
-variable "github_connection_arn" {
-  type        = string
-  description = "CodeStar connection ARN for GitHub source integration."
+variable "app_memory" {
+  description = "Memory for each Fargate task definition in MiB."
+  type        = number
+  default     = 512
+}
+
+variable "frontend_desired_count" {
+  description = "Desired number of frontend tasks."
+  type        = number
+  default     = 2
+}
+
+variable "backend_desired_count" {
+  description = "Desired number of backend tasks."
+  type        = number
+  default     = 2
 }
