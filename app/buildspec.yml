@@ -6,10 +6,25 @@ phases:
       nodejs: 20
     commands:
       - npm ci --prefix app
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo Running app tests...
+      - npm test --prefix app
   build:
     commands:
-      - npm test --prefix app
+      - echo Building frontend image...
+      - docker build -t $FRONTEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION -f app/Dockerfile app
+      - docker push $FRONTEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - echo Building backend image...
+      - docker build -t $BACKEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION -f app/Dockerfile app
+      - docker push $BACKEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - printf '%s\n' '[
+        {"name":"frontend","imageUri":"'$FRONTEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION'"},
+        {"name":"backend","imageUri":"'$BACKEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION'"}
+        ]' > imagedefinitions.json
 artifacts:
-  base-directory: app
   files:
-    - "**/*"
+    - imagedefinitions.json
+    - app/**
