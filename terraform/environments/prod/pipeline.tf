@@ -176,12 +176,15 @@ resource "aws_iam_role_policy" "codepipeline" {
         Effect = "Allow"
         Action = [
           "ecs:DescribeServices",
-          "ecs:UpdateService"
+          "ecs:UpdateService",
+          "ecs:DescribeTaskDefinition",
+          "ecs:RegisterTaskDefinition",
+          "ecs:DescribeClusters",
+          "ecs:ListTaskDefinitions",
+          "ecs:DescribeTasks",
+          "iam:PassRole"
         ]
-        Resource = [
-          aws_ecs_service.frontend.arn,
-          aws_ecs_service.backend.arn
-        ]
+        Resource = "*"
       },
       {
         Effect   = "Allow"
