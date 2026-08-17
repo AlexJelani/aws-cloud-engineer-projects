@@ -253,7 +253,7 @@ resource "aws_codepipeline" "ecs" {
       configuration = {
         ClusterName = aws_ecs_cluster.this.name
         ServiceName = aws_ecs_service.frontend.name
-        FileName    = "imagedefinitions.json"
+        FileName    = "frontend-imagedefinitions.json"
       }
     }
   }
@@ -272,7 +272,7 @@ resource "aws_codepipeline" "ecs" {
       configuration = {
         ClusterName = aws_ecs_cluster.this.name
         ServiceName = aws_ecs_service.backend.name
-        FileName    = "imagedefinitions.json"
+        FileName    = "backend-imagedefinitions.json"
       }
     }
   }

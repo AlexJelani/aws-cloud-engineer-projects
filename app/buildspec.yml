@@ -17,14 +17,17 @@ phases:
       - echo Building frontend image...
       - docker build -t $FRONTEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION -f app/Dockerfile app
       - docker push $FRONTEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - printf '%s\n' '[
+        {"name":"frontend","imageUri":"'$FRONTEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION'"}
+        ]' > frontend-imagedefinitions.json
       - echo Building backend image...
       - docker build -t $BACKEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION -f app/Dockerfile app
       - docker push $BACKEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION
       - printf '%s\n' '[
-        {"name":"frontend","imageUri":"'$FRONTEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION'"},
         {"name":"backend","imageUri":"'$BACKEND_REPO:$CODEBUILD_RESOLVED_SOURCE_VERSION'"}
-        ]' > imagedefinitions.json
+        ]' > backend-imagedefinitions.json
 artifacts:
   files:
-    - imagedefinitions.json
+    - frontend-imagedefinitions.json
+    - backend-imagedefinitions.json
     - app/**
