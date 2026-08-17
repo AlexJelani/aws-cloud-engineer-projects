@@ -1,7 +1,7 @@
 variable "github_owner" {
   description = "GitHub repository owner used by CodePipeline source action."
   type        = string
-  default     = "user"
+  default     = "AlexJelani"
 }
 
 variable "github_repo" {
