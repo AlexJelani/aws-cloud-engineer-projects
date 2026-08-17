@@ -1,65 +1,82 @@
 # AWS Cloud Engineer Portfolio Projects
 
-This repository turns three resume projects into one deployable portfolio:
+This repository demonstrates a production-style AWS workload built around a containerized portfolio application deployed on ECS Fargate. The stack emphasizes secure networking, container lifecycle management, infrastructure as code, and operational troubleshooting.
 
-1. **Highly available AWS architecture**: VPC, public/private subnets, ALB, Auto Scaling, EC2, RDS, S3, CloudWatch.
-2. **Terraform infrastructure automation**: reusable modules, variables, outputs, environment separation, repeatable deployment.
-3. **CI/CD pipeline**: GitHub source, CodeBuild validation, CodeDeploy rolling deployments, health checks, rollback-ready structure.
+## Current Architecture
 
-The goal is to demonstrate the full cloud engineering lifecycle: design, deploy, automate, monitor, and ship changes safely.
+1. **Container platform**: Dockerized Node.js app deployed to ECS Fargate behind an Application Load Balancer.
+2. **Networking**: public and private subnets, isolated database subnets, and VPC endpoints for ECR, CloudWatch Logs, Secrets Manager, and KMS.
+3. **Data layer**: private MySQL RDS instance with credentials supplied via AWS Secrets Manager.
+4. **Delivery and automation**: Terraform-managed infrastructure with environment variables and exact ECR image tags for controlled upgrades.
+5. **Operations**: CloudWatch log groups, ALB health checks, and ECS deployment monitoring.
+
+The goal is to demonstrate the full cloud engineering lifecycle: design, deploy, secure, troubleshoot, and iterate safely.
 
 ## Repository Layout
 
 ```text
-app/                         Sample web app and CodeDeploy hooks
-docs/                        Architecture, interview notes, and diagrams
+app/                         Containerized Node.js web app and Docker build files
+docs/                       Architecture and interview notes
 terraform/
-  environments/prod/         Production-style environment composition
-  modules/                   Reusable Terraform modules
-.github/workflows/           Local validation workflow for app and Terraform
+  environments/prod/        Production Terraform configuration
+  modules/                  Reusable Terraform modules
 ```
 
 ## Prerequisites
 
-- AWS account with permission to create VPC, EC2, ALB, Auto Scaling, RDS, S3, IAM, CodeBuild, CodeDeploy, CodePipeline, and CloudWatch resources
+- AWS account with permission to create VPCs, subnets, ALB, ECS, ECR, IAM, RDS, Secrets Manager, KMS, and CloudWatch resources
 - Terraform 1.6 or newer
 - AWS CLI configured locally
-- AWS CodeStar connection to GitHub for CodePipeline source integration
-- An EC2 key pair if you want direct SSH access for troubleshooting
+- Docker Desktop or Docker Engine with buildx support for amd64 image builds
 
 ## Deploy
 
 ```bash
 cd terraform/environments/prod
 terraform init
-terraform plan -out tfplan
-terraform apply tfplan
+terraform plan -var-file=terraform.tfvars -out=tfplan
+terraform apply -auto-approve tfplan
 ```
 
-Set required variables either in `terraform.tfvars`, environment variables, or your CI system:
+Set required values in `terraform.tfvars` or environment variables:
 
 ```hcl
-project_name             = "cloud-portfolio"
-aws_region               = "us-east-1"
-github_owner             = "your-github-user"
-github_repo              = "aws-cloud-engineer-projects"
-github_branch            = "main"
-github_connection_arn    = "arn:aws:codestar-connections:us-east-1:123456789012:connection/example"
-db_username              = "appadmin"
-db_password              = "replace-with-a-long-secret"
-ec2_key_name             = "optional-existing-keypair"
+project_name           = "cloud-portfolio"
+environment            = "prod"
+aws_region             = "us-east-1"
+vpc_cidr               = "10.40.0.0/16"
+frontend_image_uri     = "084847996020.dkr.ecr.us-east-1.amazonaws.com/cloud-portfolio-prod-frontend:20260817120000"
+backend_image_uri      = "084847996020.dkr.ecr.us-east-1.amazonaws.com/cloud-portfolio-prod-backend:20260816221620"
+db_name                = "appdb"
+db_username            = "appadmin"
+db_password            = "YourStrongPassword123!"
+```
+
+## Docker Image Note
+
+For ECS Fargate on Linux, the frontend image must be built for `linux/amd64`:
+
+```bash
+cd app
+aws ecr get-login-password --region us-east-1 --profile iamadmin-dev \
+  | docker login --username AWS --password-stdin 084847996020.dkr.ecr.us-east-1.amazonaws.com
+
+docker buildx build \
+  --platform linux/amd64 \
+  -t 084847996020.dkr.ecr.us-east-1.amazonaws.com/cloud-portfolio-prod-frontend:20260817120000 \
+  --push .
 ```
 
 ## What This Proves
 
-- **Architecture**: multi-AZ networking, public/private subnet boundaries, managed database placement, load balancing, and scaling policies.
-- **Automation**: repeatable infrastructure with modules, variables, outputs, and explicit dependencies.
-- **Operations**: CloudWatch dashboards and alarms for unhealthy hosts, high CPU, and database CPU.
-- **DevOps**: source-triggered build and deployment pipeline with health checks and rolling deployments.
+- **Architecture**: VPC isolation, public/private networking, ALB routing, Fargate task placement, and private database access.
+- **Security**: secret delivery through AWS Secrets Manager instead of plaintext environment values, and VPC endpoints for AWS service access.
+- **Automation**: repeatable infrastructure with Terraform, explicit image tags, and predictable environment configuration.
+- **Operations**: ALB health checks, ECS deployment tracking, CloudWatch log review, and rapid issue isolation.
 
 ## Interview Summary
 
-> I designed and automated a production-style AWS web platform across two availability zones. The application runs behind an Application Load Balancer with an Auto Scaling Group, private RDS storage, CloudWatch monitoring, and a CodePipeline-based delivery workflow. Terraform modules make the environment repeatable, and the deployment strategy allows updates to roll out gradually while health checks protect availability.
+> I designed and automated a container-based AWS application using Terraform, VPC layering, ECS Fargate, Application Load Balancer routing, private RDS storage, and AWS Secrets Manager. The frontend and backend each run as independent tasks in private subnets, while the ALB exposes the public entry point and health verification confirms service availability. I also resolved a real deployment issue caused by an architecture mismatch in the frontend container, reinforcing the importance of production-safe image builds and operational validation.
 
 ## Cost Note
 

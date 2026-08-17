@@ -1,49 +1,57 @@
 # Architecture
 
-## Production-Style AWS Project
+## ECS Fargate Production Deployment
 
 ```mermaid
 flowchart TB
   user["Users"] --> alb["Application Load Balancer"]
-  alb --> asg["Auto Scaling Group"]
-  asg --> ec2a["EC2 app instance AZ A"]
-  asg --> ec2b["EC2 app instance AZ B"]
-  ec2a --> rds["RDS Multi-AZ database"]
-  ec2b --> rds
-  alb --> cw["CloudWatch metrics and alarms"]
-  asg --> cw
+  alb --> frontend["Frontend ECS task\nprivate subnet"]
+  alb --> api["Backend ECS task\nprivate subnet"]
+
+  frontend --> rds["RDS MySQL\nisolated subnet"]
+  api --> rds
+
+  frontend --> logs["CloudWatch Logs\n/frontend"]
+  api --> logs
+  frontend --> ecr["ECR image repo"]
+  api --> ecr
+
+  secret["Secrets Manager\nDB credentials"] --> api
+  vpc["VPC endpoints\nECR / Logs / Secrets / KMS"] --> frontend
+  vpc --> api
+
+  alb --> cw["CloudWatch monitoring"]
   rds --> cw
-  s3["S3 static assets bucket"] --> user
 ```
 
 ## Design Choices
 
-- The VPC spans two availability zones to tolerate an AZ-level failure.
-- Public subnets host the ALB and NAT gateways.
-- Private application subnets host EC2 instances.
-- Isolated database subnets host RDS.
-- Security groups allow HTTP from the internet to the ALB, application traffic from the ALB to EC2, and database traffic from EC2 to RDS.
-- Auto Scaling policies scale out near 70 percent CPU and scale in near 40 percent CPU.
-- CloudWatch alarms surface unhealthy targets, high CPU, and database pressure.
+- The VPC spans two availability zones for resilience and complete private networking.
+- Public subnets host the ALB and internet-facing entry point.
+- Private application subnets host ECS Fargate tasks for the frontend and backend.
+- Isolated database subnets host the RDS instance to limit direct access.
+- Security groups restrict ALB ingress, frontend-to-backend traffic, and database connectivity to required paths only.
+- AWS Secrets Manager stores the database password instead of injecting plaintext credentials into container environment variables.
+- VPC endpoints keep private tasks connected to ECR, CloudWatch Logs, Secrets Manager, and KMS without NAT gateways.
+- ECS task definitions use exact ECR image tags so deployments remain stable and traceable.
 
-## CI/CD Flow
+## Deployment Flow
 
 ```mermaid
 sequenceDiagram
   participant Dev as Developer
-  participant GH as GitHub
-  participant CP as CodePipeline
-  participant CB as CodeBuild
-  participant CD as CodeDeploy
-  participant ALB as ALB Health Checks
+  participant ECR as ECR Repository
+  participant TF as Terraform
+  participant ECS as ECS Fargate
+  participant ALB as Application Load Balancer
+  participant RDS as RDS MySQL
 
-  Dev->>GH: Push application change
-  GH->>CP: Source revision available
-  CP->>CB: Run npm install and tests
-  CB-->>CP: Build artifact
-  CP->>CD: Start rolling deployment
-  CD->>ALB: Validate service health
-  ALB-->>CD: Healthy target response
-  CD-->>CP: Deployment succeeded
+  Dev->>ECR: Build and push Docker image
+  Dev->>TF: Update image tag and apply
+  TF->>ECS: Update task definition and service
+  ECS->>ALB: Register healthy targets
+  ALB->>ECS: Route frontend requests
+  ECS->>RDS: Connect using Secrets Manager credentials
+  ALB-->>Dev: Health and routing confirmation
 ```
 

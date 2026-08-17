@@ -2,28 +2,30 @@
 
 ## Resume Bullet
 
-Architected and automated a highly available AWS web platform using Terraform, VPC, ALB, Auto Scaling, EC2, RDS Multi-AZ, CloudWatch alarms, and CodePipeline, enabling repeatable deployments with rolling releases and health-check validation.
+Designed and automated a secure, production-style AWS application using Terraform, VPC networking, ECS Fargate, Application Load Balancer health checks, private RDS storage, ECR image management, and AWS Secrets Manager to deliver repeatable container deployments with strong operational safeguards.
 
 ## Project Walkthrough
 
-The business need was a web application that could stay available during instance failures and scale during traffic spikes. I built a two-AZ network with public, private, and database subnets. The ALB receives internet traffic and only forwards it to healthy EC2 instances in the Auto Scaling Group. The database runs privately with Multi-AZ enabled, and CloudWatch alarms track application and database health.
+The business need was a web application that could run reliably in a private AWS network while remaining publicly reachable and easy to update. I built a VPC with public subnets for the ALB, private subnets for containerized frontend and backend services, and isolated subnets for the database. The frontend and backend each run as ECS Fargate tasks, with the ALB routing requests and validating health before sending traffic.
 
-I then converted the architecture into Terraform modules so the environment can be reviewed with `terraform plan`, deployed consistently with `terraform apply`, and reused by changing variables. Finally, I added a pipeline that pulls source from GitHub, runs tests in CodeBuild, deploys with CodeDeploy, and relies on health checks before considering a release successful.
+I then moved the infrastructure to Terraform so the environment can be reviewed with `terraform plan`, deployed consistently with `terraform apply`, and changed safely by updating variables and image tags. For database credentials, I moved from plaintext values to AWS Secrets Manager and wired ECS task execution to retrieve them securely. I also validated the real-world deployment issue where the frontend image was built for the wrong architecture, proving the importance of Linux amd64 image builds and careful runtime validation in Fargate.
 
 ## Trade-Offs To Discuss
 
-- EC2 and CodeDeploy were used to demonstrate compute, deployment agents, load balancer health checks, and rolling deployment mechanics. For less operational overhead, ECS or Elastic Beanstalk could be a good next iteration.
-- NAT gateways improve private subnet patching and dependency access, but they add fixed cost. For a demo account, one NAT gateway can reduce cost; for production, one per AZ improves resilience.
-- RDS Multi-AZ improves availability, but it increases database cost. For a short-lived portfolio demo, use a small instance class and destroy the stack afterward.
-- The sample app is intentionally small so the infrastructure and delivery workflow remain the focus.
+- ECS Fargate reduces EC2 patching and operating system management, but it changes how you think about instance-level tuning and autoscaling decisions compared with EC2-based architectures.
+- VPC endpoints improve security and private network isolation, but they require more careful design and awareness of AWS service dependencies.
+- Secrets Manager is safer than environment variables for sensitive values, though it adds a dependency on IAM and KMS permissions during task startup.
+- Exact ECR image tags increase deployment traceability and rollback safety, but they require deliberate updates during release cycles.
+- The example application stays small so the emphasis remains on architecture and operations rather than app complexity.
 
 ## Questions You Should Be Ready For
 
 - Why did you separate public, private, and database subnets?
-- How does the ALB decide whether an instance is healthy?
-- What happens when CPU exceeds the scale-out threshold?
-- How would you scale this architecture to support much higher traffic?
+- How does the ALB decide whether a container is healthy?
+- Why use ECS Fargate instead of EC2 for this workload?
+- How do VPC endpoints help with private networking?
+- What is the security benefit of retrieving database credentials from Secrets Manager?
+- How would you handle a frontend container failing with an exec format error?
 - What would you monitor first during a production incident?
-- How would you make secrets management stronger?
 - How would you reduce cost for a non-production environment?
 
